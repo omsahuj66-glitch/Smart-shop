@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Smart Kirana</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #0F172A; color: white; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: #1E293B; border-radius: 16px; padding: 20px; margin: 16px 0; border: 1px solid #334155; }
+    input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; font-size: 16px; }
+    button { background: #F59E0B; color: #0F172A; font-weight: bold; cursor: pointer; }
+    .hidden { display: none; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #334155; }
+    .stat { display: inline-block; padding: 8px 16px; border-radius: 8px; margin: 4px; background: #F59E0B; color: #0F172A; }
+    .flex { display: flex; gap: 8px; flex-wrap: wrap; }
+    h3 { margin-bottom: 12px; color: #F59E0B; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; }
+    .btn-green { background: #10B981; color: white; }
+    .btn-red { background: #EF4444; color: white; }
+    .btn-blue { background: #3B82F6; color: white; }
+    .btn-yellow { background: #F59E0B; color: #0F172A; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="card" style="text-align: center; background: #F59E0B; color: #0F172A;">
+    <h1>🛡️ Admin Panel</h1>
+    <p>Smart Kirana - Full Control</p>
+  </div>
+
+  <!-- Login Screen -->
+  <div id="loginScreen">
+    <div class="card">
+      <h3>🔐 Admin Login</h3>
+      <input type="text" id="adminUsername" placeholder="Username">
+      <input type="password" id="adminPassword" placeholder="Password">
+      <button onclick="adminLogin()">Login</button>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboardScreen" class="hidden">
+    <div class="card">
+      <h3>📊 Dashboard Stats</h3>
+      <div id="stats" class="flex"></div>
+    </div>
+
+    <div class="card">
+      <h3>📋 Menu</h3>
+      <div class="flex">
+        <button onclick="loadLocations()">📍 Locations</button>
+        <button onclick="loadShops()">🏪 Shops</button>
+        <button onclick="loadSellers()">👨‍💼 Sellers</button>
+        <button onclick="loadBookings()">📦 Bookings</button>
+        <button onclick="loadTrust()">⭐ Trust Scores</button>
+        <button onclick="logout()" style="background: #EF4444; color: white;">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Display Screen -->
+  <div id="dataScreen" class="hidden">
+    <div class="card">
+      <h3 id="dataTitle">Data</h3>
+      <div id="dataContent" style="overflow-x: auto;"></div>
+      <button onclick="backToDashboard()" style="background: #6B7280; margin-top: 16px;">← Back to Dashboard</button>
+    </div>
+  </div>
+
+  <!-- Add/Edit Forms -->
+  <div id="formScreen" class="hidden">
+    <div class="card">
+      <h3 id="formTitle">Add New</h3>
+      <div id="formContent"></div>
+      <div class="flex" style="margin-top: 16px;">
+        <button onclick="submitForm()">💾 Save</button>
+        <button onclick="cancelForm()" style="background: #6B7280;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ========== API_URL ==========
+  const API_URL = 'http://localhost:5000/api';  // Deploy ke baad badalna
+  
+  let token = localStorage.getItem('adminToken');
+  let currentAction = null;
+  let currentEditId = null;
+
+  if (token) {
+    loadDashboard();
+    loadStats();
+  }
+
+  async function adminLogin() {
+    const username = document.getElementById('adminUsername').value;
+    const password = document.getElementById('adminPassword').value;
+    
+    try {
+      const res = await fetch(`${API_URL}/auth/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('adminToken', data.token);
+        token = data.token;
+        loadDashboard();
+        loadStats();
+      } else {
+        alert('Invalid credentials');
+      }
+    } catch(e) {
+      alert('Login failed');
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API_URL}/admin/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const stats = await res.json();
+      document.getElementById('stats').innerHTML = `
+        <div class="stat">🏪 Shops: ${stats.totalShops}</div>
+        <div class="stat">📦 Bookings: ${stats.totalBookings}</div>
+        <div class="stat">📍 Locations: ${stats.activeLocations}</div>
+        <div class="stat">👨‍💼 Sellers: ${stats.sellers}</div>
+        <div class="stat">⏳ Pending: ${stats.pendingBookings}</div>
+      `;
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  function loadDashboard() {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('dashboardScreen').classList.remove('hidden');
+    document.getElementById('dataScreen').classList.add('hidden');
+    document.getElementById('formScreen').classList.add('hidden');
+  }
+
+  // ========== LOCATIONS ==========
+  async function loadLocations() {
+    try {
+      const res = await fetch(`${API_URL}/locations/all`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const locations = await res.json();
+      showData('📍 Locations', locations, ['name', 'type', 'isActive'], [
+        { label: 'Edit', action: 'editLocation', color: 'btn-blue' },
+        { label: 'Delete', action: 'deleteLocation', color: 'btn-red' }
+      ]);
+    } catch(e) {
+      alert('Error loading locations');
+    }
+  }
+
+  function showAddLocation() {
+    currentAction = 'addLocation';
+    document.getElementById('formTitle').innerHTML = '📍 Add New Location';
+    document.getElementById('formContent').innerHTML = `
+      <input type="text" id="locName" placeholder="Location Name (eg. Agra)" style="background:#334155; color:white;">
+      <select id="locType" style="background:#334155; color:white;">
+        <option value="city">City (शहर)</option>
+        <option value="town">Town (कस्बा)</option>
+        <option value="village">Village (गाँव)</option>
+      </select>
+    `;
+    document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('formScreen').classList.remove('hidden');
+  }
+
+  // ========== SHOPS ==========
+  async function loadShops() {
+    try {
+      const res = await fetch(`${API_URL}/shops`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const shops = await res.json();
+      showData('🏪 Shops', shops, ['name', 'phone', 'upiId', 'isActive'], [
+        { label: 'Edit', action: 'editShop', color: 'btn-blue' },
+        { label: 'Delete', action: 'deleteShop', color: 'btn-red' }
+      ]);
+    } catch(e) {
+      alert('Error loading shops');
+    }
+  }
+
+  function showAddShop() {
+    currentAction = 'addShop';
+    document.getElementById('formTitle').innerHTML = '🏪 Add New Shop';
+    document.getElementById('formContent').innerHTML = `
+      <input type="text" id="shopName" placeholder="Shop Name" style="background:#334155; color:white;">
+      <input type="text" id="shopPhone" placeholder="Phone Number" style="background:#334155; color:white;">
+      <input type="text" id="shopUpi" placeholder="UPI ID (optional)" style="background:#334155; color:white;">
+      <select id="shopLocation" style="background:#334155; color:white;">
+        <option value="">Select Location</option>
+      </select>
+    `;
+    fetch(`${API_URL}/locations/all`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.json()).then(locations => {
+      const select = document.getElementById('shopLocation');
+      locations.forEach(loc => {
+        select.innerHTML += `<option value="${loc._id}">${loc.name}</option>`;
+      });
+    });
+    document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('formScreen').classList.remove('hidden');
+  }
+
+  // ========== SELLERS ==========
+  async function loadSellers() {
+    try {
+      const res = await fetch(`${API_URL}/admin/sellers`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const sellers = await res.json();
+      showData('👨‍💼 Sellers', sellers, ['name', 'email', 'phone', 'isBlocked'], [
+        { label: 'Block/Unblock', action: 'toggleBlock', color: 'btn-yellow' },
+        { label: 'Assign Shop', action: 'assignShop', color: 'btn-blue' },
+        { label: 'Reset Password', action: 'resetPassword', color: 'btn-green' }
+      ]);
+    } catch(e) {
+      alert('Error loading sellers');
+    }
+  }
+
+  function showAddSeller() {
+    currentAction = 'addSeller';
+    document.getElementById('formTitle').innerHTML = '👨‍💼 Add New Seller';
+    document.getElementById('formContent').innerHTML = `
+      <input type="text" id="sellerName" placeholder="Full Name" style="background:#334155; color:white;">
+      <input type="email" id="sellerEmail" placeholder="Email" style="background:#334155; color:white;">
+      <input type="tel" id="sellerPhone" placeholder="Phone (10 digit)" style="background:#334155; color:white;">
+      <input type="password" id="sellerPassword" placeholder="Password" style="background:#334155; color:white;">
+    `;
+    document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('formScreen').classList.remove('hidden');
+  }
+
+  // ========== BOOKINGS ==========
+  async function loadBookings() {
+    try {
+      const res = await fetch(`${API_URL}/bookings/admin/all`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const bookings = await res.json();
+      showData('📦 Bookings', bookings, ['bookingId', 'customerName', 'phone', 'status'], [
+        { label: 'Cancel', action: 'cancelBooking', color: 'btn-red' }
+      ]);
+    } catch(e) {
+      alert('Error loading bookings');
+    }
+  }
+
+  // ========== TRUST ==========
+  async function loadTrust() {
+    try {
+      const res = await fetch(`${API_URL}/trust`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const trust = await res.json();
+      showData('⭐ Trust Scores', trust, ['customerName', 'phone', 'score', 'totalBookings'], [
+        { label: 'Reset Score', action: 'resetTrust', color: 'btn-green' }
+      ]);
+    } catch(e) {
+      alert('Error loading trust');
+    }
+  }
+
+  // ========== HELPER ==========
+  function showData(title, data, fields, actions = []) {
+    document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('dataScreen').classList.remove('hidden');
+    
+    let addBtn = '';
+    if (title.includes('Locations')) addBtn = '<button onclick="showAddLocation()" style="width: auto; padding: 6px 12px; margin-left: 12px; background: #10B981;">+ Add</button>';
+    if (title.includes('Shops')) addBtn = '<button onclick="showAddShop()" style="width: auto; padding: 6px 12px; margin-left: 12px; background: #10B981;">+ Add</button>';
+    if (title.includes('Sellers')) addBtn = '<button onclick="showAddSeller()" style="width: auto; padding: 6px 12px; margin-left: 12px; background: #10B981;">+ Add</button>';
+    
+    document.getElementById('dataTitle').innerHTML = `${title} ${addBtn}`;
+    
+    let html = '<table><thead><tr>';
+    fields.forEach(f => html += `<th>${f}</th>`);
+    if (actions.length) html += `<th>Actions</th>`;
+    html += '</tr></thead><tbody>';
+    
+    data.forEach(item => {
+      html += '<tr>';
+      fields.forEach(f => {
+        let val = item[f];
+        if (typeof val === 'boolean') val = val ? '✅ Active' : '❌ Inactive';
+        if (val === undefined) val = '-';
+        html += `<td>${val}</td>`;
+      });
+      if (actions.length) {
+        html += '<td><div class="flex">';
+        actions.forEach(action => {
+          html += `<button class="btn-sm ${action.color}" onclick="${action.action}('${item._id}')">${action.label}</button>`;
+        });
+        html += '</div></td>';
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    if (data.length === 0) html = '<p style="text-align:center;">No data found</p>';
+    document.getElementById('dataContent').innerHTML = html;
+  }
+
+  // Form submit
+  window.submitForm = async function() {
+    if (currentAction === 'addLocation') {
+      const name = document.getElementById('locName').value;
+      const type = document.getElementById('locType').value;
+      await fetch(`${API_URL}/locations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name, type })
+      });
+      alert('Location added!');
+      cancelForm();
+      loadLocations();
+    }
+    if (currentAction === 'addShop') {
+      const name = document.getElementById('shopName').value;
+      const phone = document.getElementById('shopPhone').value;
+      const upiId = document.getElementById('shopUpi').value;
+      const locationId = document.getElementById('shopLocation').value;
+      await fetch(`${API_URL}/shops`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name, phone, upiId, locationId })
+      });
+      alert('Shop added!');
+      cancelForm();
+      loadShops();
+    }
+    if (currentAction === 'addSeller') {
+      const name = document.getElementById('sellerName').value;
+      const email = document.getElementById('sellerEmail').value;
+      const phone = document.getElementById('sellerPhone').value;
+      const password = document.getElementById('sellerPassword').value;
+      await fetch(`${API_URL}/admin/sellers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name, email, phone, password })
+      });
+      alert('Seller added!');
+      cancelForm();
+      loadSellers();
+    }
+  };
+
+  window.cancelForm = function() {
+    document.getElementById('formScreen').classList.add('hidden');
+    loadDashboard();
+    loadStats();
+  };
+
+  window.backToDashboard = function() {
+    loadDashboard();
+    loadStats();
+  };
+
+  window.logout = function() {
+    localStorage.removeItem('adminToken');
+    location.reload();
+  };
+
+  // Action stubs
+  window.editLocation = (id) => alert('Edit feature - coming soon');
+  window.deleteLocation = async (id) => {
+    if(confirm('Delete this location?')) {
+      await fetch(`${API_URL}/locations/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert('Deleted');
+      loadLocations();
+    }
+  };
+  window.editShop = (id) => alert('Edit feature - coming soon');
+  window.deleteShop = async (id) => {
+    if(confirm('Delete this shop?')) {
+      await fetch(`${API_URL}/shops/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert('Deleted');
+      loadShops();
+    }
+  };
+  window.toggleBlock = async (id) => {
+    await fetch(`${API_URL}/admin/sellers/${id}/block`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    alert('Updated');
+    loadSellers();
+  };
+  window.assignShop = (id) => alert('Assign shop - coming soon');
+  window.resetPassword = (id) => alert('Reset password - coming soon');
+  window.cancelBooking = async (id) => {
+    if(confirm('Cancel this booking?')) {
+      await fetch(`${API_URL}/bookings/${id}/cancel`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert('Cancelled');
+      loadBookings();
+    }
+  };
+  window.resetTrust = async (id) => {
+    if(confirm('Reset trust score to 5?')) {
+      await fetch(`${API_URL}/trust/${id}/reset`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert('Reset');
+      loadTrust();
+    }
+  };
+</script>
+</body>
+</html>
