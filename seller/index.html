@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Panel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: white; border-radius: 12px; padding: 20px; margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
+    button { background: #7C3AED; color: white; font-weight: bold; cursor: pointer; }
+    .hidden { display: none; }
+    .product-item, .booking-item { background: #f9f9f9; padding: 12px; margin: 8px 0; border-radius: 8px; }
+    .status { padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-block; }
+    .status-pending { background: #FEF3C7; color: #D97706; }
+    .status-ready { background: #D1FAE5; color: #065F46; }
+    .status-completed { background: #DBEAFE; color: #1D4ED8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card" style="text-align: center;">
+      <h1>👨‍💼 Seller Panel</h1>
+    </div>
+
+    <!-- Auth Screen -->
+    <div id="authScreen">
+      <div class="card">
+        <h3>🔐 Login / Register</h3>
+        <input type="text" id="loginEmail" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <hr>
+        <input type="text" id="regName" placeholder="Full Name">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="tel" id="regPhone" placeholder="Phone">
+        <input type="password" id="regPassword" placeholder="Password">
+        <button onclick="register()">Register</button>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboardScreen" class="hidden">
+      <div class="card">
+        <h3>📊 Dashboard</h3>
+        <div id="shopInfo">Loading shop...</div>
+        <hr>
+        <button onclick="loadProducts()">🛒 Manage Products</button>
+        <button onclick="loadBookings()">📋 View Bookings</button>
+        <button onclick="logout()" style="background: #ef4444;">Logout</button>
+      </div>
+    </div>
+
+    <!-- Products Screen -->
+    <div id="productsScreen" class="hidden">
+      <div class="card">
+        <h3>🛒 My Products</h3>
+        <button onclick="showAddProduct()">+ Add Product</button>
+        <div id="productsList"></div>
+        <button onclick="backToDashboard()">Back</button>
+      </div>
+    </div>
+
+    <!-- Bookings Screen -->
+    <div id="bookingsScreen" class="hidden">
+      <div class="card">
+        <h3>📋 Bookings</h3>
+        <div id="bookingsList"></div>
+        <button onclick="backToDashboard()">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api'; // ADD_YOUR_BACKEND_URL_HERE
+    let token = localStorage.getItem('sellerToken');
+    let seller = null;
+
+    if (token) loadDashboard();
+
+    async function register() {
+      const name = document.getElementById('regName').value;
+      const email = document.getElementById('regEmail').value;
+      const phone = document.getElementById('regPhone').value;
+      const password = document.getElementById('regPassword').value;
+      
+      const res = await fetch(`${API_URL}/auth/seller/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, password })
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('sellerToken', data.token);
+        token = data.token;
+        loadDashboard();
+      } else {
+        alert('Registration failed');
+      }
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      const res = await fetch(`${API_URL}/auth/seller/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('sellerToken', data.token);
+        token = data.token;
+        loadDashboard();
+      } else {
+        alert('Login failed');
+      }
+    }
+
+    async function loadDashboard() {
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('dashboardScreen').classList.remove('hidden');
+      
+      // Get seller info from token
+      const res = await fetch(`${API_URL}/admin/sellers`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const sellers = await res.json();
+      // Simplified: just show welcome
+      document.getElementById('shopInfo').innerHTML = '<p>✅ Welcome Seller!</p>';
+    }
+
+    async function loadProducts() {
+      document.getElementById('dashboardScreen').classList.add('hidden');
+      document.getElementById('productsScreen').classList.remove('hidden');
+      
+      // Get seller's shop products
+      const res = await fetch(`${API_URL}/products/shop/ADD_SHOP_ID_HERE`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const products = await res.json();
+      const list = document.getElementById('productsList');
+      list.innerHTML = '';
+      products.forEach(p => {
+        list.innerHTML += `
+          <div class="product-item">
+            <strong>${p.name}</strong> - ₹${p.price}/${p.unit}<br>
+            Stock: ${p.stock}
+          </div>
+        `;
+      });
+    }
+
+    async function loadBookings() {
+      document.getElementById('dashboardScreen').classList.add('hidden');
+      document.getElementById('bookingsScreen').classList.remove('hidden');
+      
+      const res = await fetch(`${API_URL}/bookings/seller/mine`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const bookings = await res.json();
+      const list = document.getElementById('bookingsList');
+      list.innerHTML = '';
+      bookings.forEach(b => {
+        list.innerHTML += `
+          <div class="booking-item">
+            <strong>${b.bookingId}</strong><br>
+            👤 ${b.customerName} | 📞 ${b.phone}<br>
+            📦 ${b.productId?.name || 'Product'} × ${b.quantity}<br>
+            <span class="status status-${b.status}">${b.status}</span>
+          </div>
+        `;
+      });
+    }
+
+    function showAddProduct() {
+      alert('Add product feature - implement as needed');
+    }
+
+    function backToDashboard() {
+      document.getElementById('productsScreen').classList.add('hidden');
+      document.getElementById('bookingsScreen').classList.add('hidden');
+      document.getElementById('dashboardScreen').classList.remove('hidden');
+    }
+
+    function logout() {
+      localStorage.removeItem('sellerToken');
+      location.reload();
+    }
+  </script>
+</body>
+</html>
