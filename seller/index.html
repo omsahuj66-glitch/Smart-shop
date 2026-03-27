@@ -3,89 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Seller Panel</title>
+  <title>Seller Panel - Smart Kirana</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: sans-serif; background: #f5f5f5; padding: 20px; }
+    body { font-family: sans-serif; background: #F5F3FF; padding: 20px; }
     .container { max-width: 600px; margin: 0 auto; }
-    .card { background: white; border-radius: 12px; padding: 20px; margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
-    button { background: #7C3AED; color: white; font-weight: bold; cursor: pointer; }
+    .card { background: white; border-radius: 16px; padding: 20px; margin: 16px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+    button { background: #7C3AED; color: white; font-weight: bold; cursor: pointer; border: none; }
     .hidden { display: none; }
-    .product-item, .booking-item { background: #f9f9f9; padding: 12px; margin: 8px 0; border-radius: 8px; }
+    .product-item, .booking-item { background: #F9F9F9; padding: 12px; margin: 8px 0; border-radius: 8px; }
     .status { padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-block; }
     .status-pending { background: #FEF3C7; color: #D97706; }
     .status-ready { background: #D1FAE5; color: #065F46; }
     .status-completed { background: #DBEAFE; color: #1D4ED8; }
+    .btn-small { padding: 6px 12px; font-size: 14px; width: auto; margin: 4px; }
+    .flex { display: flex; gap: 8px; flex-wrap: wrap; }
+    h3 { color: #333; margin-bottom: 12px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card" style="text-align: center;">
-      <h1>👨‍💼 Seller Panel</h1>
-    </div>
+<div class="container">
+  <div class="card" style="text-align: center; background: #7C3AED; color: white;">
+    <h1>👨‍💼 Seller Panel</h1>
+    <p>Smart Kirana - अपनी दुकान संभालें</p>
+  </div>
 
-    <!-- Auth Screen -->
-    <div id="authScreen">
-      <div class="card">
-        <h3>🔐 Login / Register</h3>
-        <input type="text" id="loginEmail" placeholder="Email">
-        <input type="password" id="loginPassword" placeholder="Password">
-        <button onclick="login()">Login</button>
-        <hr>
-        <input type="text" id="regName" placeholder="Full Name">
-        <input type="email" id="regEmail" placeholder="Email">
-        <input type="tel" id="regPhone" placeholder="Phone">
-        <input type="password" id="regPassword" placeholder="Password">
-        <button onclick="register()">Register</button>
-      </div>
+  <!-- Auth Screen -->
+  <div id="authScreen">
+    <div class="card">
+      <h3>🔐 Login / Register</h3>
+      <input type="email" id="loginEmail" placeholder="Email">
+      <input type="password" id="loginPassword" placeholder="Password">
+      <button onclick="login()">Login</button>
+      <hr style="margin: 16px 0;">
+      <h3>📝 नया Seller Register करें</h3>
+      <input type="text" id="regName" placeholder="Full Name">
+      <input type="email" id="regEmail" placeholder="Email">
+      <input type="tel" id="regPhone" placeholder="Phone (10 digit)">
+      <input type="password" id="regPassword" placeholder="Password">
+      <button onclick="register()">Register</button>
     </div>
+  </div>
 
-    <!-- Dashboard -->
-    <div id="dashboardScreen" class="hidden">
-      <div class="card">
-        <h3>📊 Dashboard</h3>
-        <div id="shopInfo">Loading shop...</div>
-        <hr>
+  <!-- Dashboard -->
+  <div id="dashboardScreen" class="hidden">
+    <div class="card">
+      <h3>📊 Dashboard</h3>
+      <div id="shopInfo" style="background: #F3F4F6; padding: 12px; border-radius: 8px; margin: 12px 0;"></div>
+      <div class="flex" style="gap: 10px;">
         <button onclick="loadProducts()">🛒 Manage Products</button>
         <button onclick="loadBookings()">📋 View Bookings</button>
-        <button onclick="logout()" style="background: #ef4444;">Logout</button>
-      </div>
-    </div>
-
-    <!-- Products Screen -->
-    <div id="productsScreen" class="hidden">
-      <div class="card">
-        <h3>🛒 My Products</h3>
-        <button onclick="showAddProduct()">+ Add Product</button>
-        <div id="productsList"></div>
-        <button onclick="backToDashboard()">Back</button>
-      </div>
-    </div>
-
-    <!-- Bookings Screen -->
-    <div id="bookingsScreen" class="hidden">
-      <div class="card">
-        <h3>📋 Bookings</h3>
-        <div id="bookingsList"></div>
-        <button onclick="backToDashboard()">Back</button>
+        <button onclick="logout()" style="background: #EF4444;">Logout</button>
       </div>
     </div>
   </div>
 
-  <script>
-    const API_URL = 'http://localhost:5000/api'; // ADD_YOUR_BACKEND_URL_HERE
-    let token = localStorage.getItem('sellerToken');
-    let seller = null;
+  <!-- Products Screen -->
+  <div id="productsScreen" class="hidden">
+    <div class="card">
+      <h3>🛒 My Products</h3>
+      <button onclick="showAddProduct()">+ Add New Product</button>
+      <div id="productsList"></div>
+      <button onclick="backToDashboard()" style="background: #9CA3AF; margin-top: 16px;">← Back to Dashboard</button>
+    </div>
+  </div>
 
-    if (token) loadDashboard();
+  <!-- Add Product Card -->
+  <div id="addProductCard" class="hidden">
+    <div class="card">
+      <h3>➕ Add Product</h3>
+      <input type="text" id="pName" placeholder="Product Name">
+      <input type="number" id="pPrice" placeholder="Price (₹)">
+      <input type="number" id="pStock" placeholder="Stock Quantity">
+      <select id="pUnit">
+        <option value="kg">Kilogram (kg)</option>
+        <option value="piece">Piece (नग)</option>
+        <option value="litre">Litre (लीटर)</option>
+        <option value="packet">Packet (पैकेट)</option>
+      </select>
+      <div class="flex">
+        <button onclick="saveProduct()">💾 Save Product</button>
+        <button onclick="cancelAddProduct()" style="background: #9CA3AF;">Cancel</button>
+      </div>
+    </div>
+  </div>
 
-    async function register() {
-      const name = document.getElementById('regName').value;
-      const email = document.getElementById('regEmail').value;
-      const phone = document.getElementById('regPhone').value;
-      const password = document.getElementById('regPassword').value;
-      
+  <!-- Bookings Screen -->
+  <div id="bookingsScreen" class="hidden">
+    <div class="card">
+      <h3>📋 All Bookings</h3>
+      <div class="flex" style="margin-bottom: 12px;">
+        <button onclick="filterBookings('all')" class="btn-small">All</button>
+        <button onclick="filterBookings('pending')" class="btn-small">Pending</button>
+        <button onclick="filterBookings('ready')" class="btn-small">Ready</button>
+        <button onclick="filterBookings('completed')" class="btn-small">Completed</button>
+      </div>
+      <div id="bookingsList"></div>
+      <button onclick="backToDashboard()" style="background: #9CA3AF; margin-top: 16px;">← Back to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ========== YAHAN API_URL DALO ==========
+  const API_URL = 'http://localhost:5000/api';  // Deploy ke baad badalna
+  
+  let token = localStorage.getItem('sellerToken');
+  let sellerData = null;
+  let allBookings = [];
+  let editingProduct = null;
+
+  if (token) {
+    loadDashboard();
+  }
+
+  async function register() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const password = document.getElementById('regPassword').value;
+    
+    if (!name || !email || !phone || !password) {
+      alert('सभी fields भरें');
+      return;
+    }
+    if (phone.length !== 10) {
+      alert('Phone number 10 अंक का होना चाहिए');
+      return;
+    }
+    
+    try {
       const res = await fetch(`${API_URL}/auth/seller/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,16 +143,26 @@
       if (data.token) {
         localStorage.setItem('sellerToken', data.token);
         token = data.token;
+        sellerData = data.seller;
         loadDashboard();
       } else {
-        alert('Registration failed');
+        alert(data.error || 'Registration failed');
       }
+    } catch(e) {
+      alert('Registration failed');
     }
+  }
 
-    async function login() {
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
-      
+  async function login() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+      alert('Email और Password दर्ज करें');
+      return;
+    }
+    
+    try {
       const res = await fetch(`${API_URL}/auth/seller/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,82 +172,234 @@
       if (data.token) {
         localStorage.setItem('sellerToken', data.token);
         token = data.token;
+        sellerData = data.seller;
         loadDashboard();
       } else {
-        alert('Login failed');
+        alert(data.error || 'Login failed');
       }
+    } catch(e) {
+      alert('Login failed');
     }
+  }
 
-    async function loadDashboard() {
-      document.getElementById('authScreen').classList.add('hidden');
-      document.getElementById('dashboardScreen').classList.remove('hidden');
-      
-      // Get seller info from token
-      const res = await fetch(`${API_URL}/admin/sellers`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const sellers = await res.json();
-      // Simplified: just show welcome
-      document.getElementById('shopInfo').innerHTML = '<p>✅ Welcome Seller!</p>';
+  async function loadDashboard() {
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('dashboardScreen').classList.remove('hidden');
+    document.getElementById('shopInfo').innerHTML = '<p>✅ Welcome Seller! Admin se shop assign karwayein.</p>';
+  }
+
+  async function loadProducts() {
+    if (!sellerData?.shopId) {
+      alert('पहले admin से shop assign करवाएं');
+      return;
     }
-
-    async function loadProducts() {
-      document.getElementById('dashboardScreen').classList.add('hidden');
-      document.getElementById('productsScreen').classList.remove('hidden');
-      
-      // Get seller's shop products
-      const res = await fetch(`${API_URL}/products/shop/ADD_SHOP_ID_HERE`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+    
+    document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('productsScreen').classList.remove('hidden');
+    document.getElementById('addProductCard').classList.add('hidden');
+    
+    try {
+      const shopId = typeof sellerData.shopId === 'object' ? sellerData.shopId._id : sellerData.shopId;
+      const res = await fetch(`${API_URL}/products/shop/${shopId}`);
       const products = await res.json();
       const list = document.getElementById('productsList');
       list.innerHTML = '';
+      if (products.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#666;">कोई product नहीं। + Add Product से जोड़ें</p>';
+      }
       products.forEach(p => {
         list.innerHTML += `
           <div class="product-item">
-            <strong>${p.name}</strong> - ₹${p.price}/${p.unit}<br>
-            Stock: ${p.stock}
+            <strong>${p.name}</strong><br>
+            ₹${p.price} / ${p.unit} | Stock: ${p.stock}<br>
+            <div class="flex" style="margin-top: 8px;">
+              <button onclick="editProduct('${p._id}', '${p.name}', ${p.price}, ${p.stock}, '${p.unit}')" class="btn-small" style="background: #3B82F6;">✏️ Edit</button>
+              <button onclick="deleteProduct('${p._id}')" class="btn-small" style="background: #EF4444;">🗑️ Delete</button>
+            </div>
           </div>
         `;
       });
+    } catch(e) {
+      alert('Products load nahi hue');
     }
+  }
 
-    async function loadBookings() {
-      document.getElementById('dashboardScreen').classList.add('hidden');
-      document.getElementById('bookingsScreen').classList.remove('hidden');
+  function showAddProduct() {
+    editingProduct = null;
+    document.getElementById('pName').value = '';
+    document.getElementById('pPrice').value = '';
+    document.getElementById('pStock').value = '';
+    document.getElementById('pUnit').value = 'kg';
+    document.getElementById('addProductCard').classList.remove('hidden');
+  }
+
+  function cancelAddProduct() {
+    document.getElementById('addProductCard').classList.add('hidden');
+  }
+
+  window.editProduct = function(id, name, price, stock, unit) {
+    editingProduct = id;
+    document.getElementById('pName').value = name;
+    document.getElementById('pPrice').value = price;
+    document.getElementById('pStock').value = stock;
+    document.getElementById('pUnit').value = unit;
+    document.getElementById('addProductCard').classList.remove('hidden');
+  }
+
+  async function saveProduct() {
+    const name = document.getElementById('pName').value.trim();
+    const price = parseFloat(document.getElementById('pPrice').value);
+    const stock = parseInt(document.getElementById('pStock').value);
+    const unit = document.getElementById('pUnit').value;
+    
+    if (!name || isNaN(price)) {
+      alert('Name और Price दर्ज करें');
+      return;
+    }
+    
+    const shopId = typeof sellerData.shopId === 'object' ? sellerData.shopId._id : sellerData.shopId;
+    
+    try {
+      let url = `${API_URL}/products`;
+      let method = 'POST';
+      let body = { name, price, stock, unit, shopId };
       
+      if (editingProduct) {
+        url = `${API_URL}/products/${editingProduct}`;
+        method = 'PUT';
+      }
+      
+      const res = await fetch(url, {
+        method: method,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+      
+      if (res.ok) {
+        alert(editingProduct ? 'Product updated!' : 'Product added!');
+        cancelAddProduct();
+        loadProducts();
+      } else {
+        alert('Failed');
+      }
+    } catch(e) {
+      alert('Error saving product');
+    }
+  }
+
+  async function deleteProduct(id) {
+    if (!confirm('Delete this product?')) return;
+    try {
+      const res = await fetch(`${API_URL}/products/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        alert('Product deleted');
+        loadProducts();
+      } else {
+        alert('Delete failed');
+      }
+    } catch(e) {
+      alert('Error');
+    }
+  }
+
+  async function loadBookings() {
+    if (!sellerData?.shopId) {
+      alert('Shop assign nahi hui');
+      return;
+    }
+    
+    document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('bookingsScreen').classList.remove('hidden');
+    
+    try {
       const res = await fetch(`${API_URL}/bookings/seller/mine`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const bookings = await res.json();
-      const list = document.getElementById('bookingsList');
-      list.innerHTML = '';
-      bookings.forEach(b => {
-        list.innerHTML += `
-          <div class="booking-item">
-            <strong>${b.bookingId}</strong><br>
-            👤 ${b.customerName} | 📞 ${b.phone}<br>
-            📦 ${b.productId?.name || 'Product'} × ${b.quantity}<br>
-            <span class="status status-${b.status}">${b.status}</span>
-          </div>
-        `;
+      allBookings = await res.json();
+      renderBookings(allBookings);
+    } catch(e) {
+      alert('Bookings load nahi hui');
+    }
+  }
+
+  function renderBookings(bookings) {
+    const list = document.getElementById('bookingsList');
+    list.innerHTML = '';
+    if (bookings.length === 0) {
+      list.innerHTML = '<p style="text-align:center; color:#666;">कोई booking nahi</p>';
+      return;
+    }
+    bookings.forEach(b => {
+      const timeLeft = Math.max(0, Math.floor((new Date(b.expiresAt) - Date.now()) / 60000));
+      list.innerHTML += `
+        <div class="booking-item">
+          <strong>#${b.bookingId}</strong>
+          <span class="status status-${b.status}">${b.status}</span><br>
+          👤 ${b.customerName} | 📞 ${b.phone}<br>
+          📦 ${b.productId?.name || 'Product'} × ${b.quantity}<br>
+          ⏳ ${timeLeft} min left<br>
+          ${b.status === 'pending' ? `
+            <div class="flex" style="margin-top: 8px;">
+              <button onclick="updateStatus('${b._id}', 'ready')" class="btn-small" style="background: #10B981;">✅ Mark Ready</button>
+              <button onclick="updateStatus('${b._id}', 'completed')" class="btn-small" style="background: #3B82F6;">🏆 Complete</button>
+            </div>
+          ` : ''}
+          ${b.status === 'ready' ? `
+            <div class="flex" style="margin-top: 8px;">
+              <button onclick="updateStatus('${b._id}', 'completed')" class="btn-small" style="background: #3B82F6;">🏆 Mark Completed</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+  }
+
+  window.filterBookings = function(status) {
+    if (status === 'all') {
+      renderBookings(allBookings);
+    } else {
+      renderBookings(allBookings.filter(b => b.status === status));
+    }
+  }
+
+  window.updateStatus = async function(bookingId, status) {
+    try {
+      const res = await fetch(`${API_URL}/bookings/${bookingId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
       });
+      if (res.ok) {
+        alert('Status updated!');
+        loadBookings();
+      } else {
+        alert('Update failed');
+      }
+    } catch(e) {
+      alert('Error');
     }
+  }
 
-    function showAddProduct() {
-      alert('Add product feature - implement as needed');
-    }
+  function backToDashboard() {
+    document.getElementById('productsScreen').classList.add('hidden');
+    document.getElementById('bookingsScreen').classList.add('hidden');
+    document.getElementById('addProductCard').classList.add('hidden');
+    document.getElementById('dashboardScreen').classList.remove('hidden');
+  }
 
-    function backToDashboard() {
-      document.getElementById('productsScreen').classList.add('hidden');
-      document.getElementById('bookingsScreen').classList.add('hidden');
-      document.getElementById('dashboardScreen').classList.remove('hidden');
-    }
-
-    function logout() {
-      localStorage.removeItem('sellerToken');
-      location.reload();
-    }
-  </script>
+  function logout() {
+    localStorage.removeItem('sellerToken');
+    location.reload();
+  }
+</script>
 </body>
 </html>
