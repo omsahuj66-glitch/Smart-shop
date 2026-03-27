@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Kirana</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Mukta', sans-serif; background: #FFFBF5; color: #1A0F00; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #FF6B00; color: white; padding: 15px; text-align: center; border-radius: 0 0 20px 20px; }
+    .card { background: white; border-radius: 16px; padding: 20px; margin: 16px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    select, input { width: 100%; padding: 12px; border: 2px solid #F0E0C8; border-radius: 10px; font-size: 16px; margin: 8px 0; }
+    button { width: 100%; padding: 14px; background: #FF6B00; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
+    .shop-card { background: white; padding: 15px; margin: 10px 0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.1); }
+    .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .product-card { background: white; padding: 12px; border-radius: 12px; text-align: center; }
+    .hidden { display: none; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 25px; display: none; }
+  </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛒 Smart Kirana</h1>
+      <p>आपकी अपनी दुकान</p>
+    </div>
+
+    <!-- Screen 1: Select Area -->
+    <div id="screenArea">
+      <div class="card">
+        <h3>📍 अपना इलाका चुनें</h3>
+        <select id="locationSelect">
+          <option value="">-- इलाका चुनें --</option>
+        </select>
+        <div id="locationLoading">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Screen 2: Shops -->
+    <div id="screenShops" class="hidden">
+      <h3 id="areaTitle">दुकानें</h3>
+      <div id="shopList"></div>
+      <button onclick="goBack()" style="background: #ccc; color: #333;">← Back</button>
+    </div>
+
+    <!-- Screen 3: Products -->
+    <div id="screenProducts" class="hidden">
+      <div id="shopDetailInfo"></div>
+      <h3>उपलब्ध सामान</h3>
+      <div id="productGrid" class="product-grid"></div>
+      <button onclick="goBack()" style="background: #ccc; color: #333; margin-top: 16px;">← Back</button>
+    </div>
+
+    <!-- Screen 4: Booking Form -->
+    <div id="screenBook" class="hidden">
+      <div class="card">
+        <h3 id="bookingProductTitle">बुकिंग करें</h3>
+        <div id="productSummary"></div>
+        <input type="text" id="custName" placeholder="आपका नाम">
+        <input type="tel" id="custPhone" placeholder="मोबाइल नंबर (10 अंक)">
+        <button onclick="sendOTP()">📱 OTP भेजें</button>
+        <button onclick="goBack()" style="background: #ccc; color: #333; margin-top: 8px;">← Back</button>
+      </div>
+    </div>
+
+    <!-- Screen 5: OTP -->
+    <div id="screenOTP" class="hidden">
+      <div class="card">
+        <h3>📱 OTP दर्ज करें</h3>
+        <div id="otpSentTo"></div>
+        <div style="display: flex; gap: 8px; margin: 16px 0; justify-content: center;">
+          <input type="text" maxlength="1" class="otpBox" style="width: 45px; height: 55px; text-align: center; font-size: 24px;">
+          <input type="text" maxlength="1" class="otpBox" style="width: 45px; height: 55px; text-align: center; font-size: 24px;">
+          <input type="text" maxlength="1" class="otpBox" style="width: 45px; height: 55px; text-align: center; font-size: 24px;">
+          <input type="text" maxlength="1" class="otpBox" style="width: 45px; height: 55px; text-align: center; font-size: 24px;">
+          <input type="text" maxlength="1" class="otpBox" style="width: 45px; height: 55px; text-align: center; font-size: 24px;">
+          <input type="text" maxlength="1" class="otpBox" style="width: 45px; height: 55px; text-align: center; font-size: 24px;">
+        </div>
+        <button onclick="verifyOTP()">✅ सत्यापित करें</button>
+        <button onclick="sendOTP()" style="background: #ccc; color: #333; margin-top: 8px;">🔄 फिर से भेजें</button>
+        <button onclick="goBack()" style="background: #ccc; color: #333; margin-top: 8px;">← Back</button>
+      </div>
+    </div>
+
+    <!-- Screen 6: Success -->
+    <div id="screenSuccess" class="hidden">
+      <div class="card" style="text-align: center;">
+        <div style="font-size: 64px;">✅</div>
+        <h2>बुकिंग हो गई!</h2>
+        <div id="successBookingId" style="background: #FFE8D9; padding: 10px; border-radius: 8px; margin: 16px 0;"></div>
+        <div id="successDetails"></div>
+        <button onclick="goHome()">🏠 होम पर जाएं</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ========== YAHAN FIREBASE CONFIG DALO ==========
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJqQer15As2d8a2VPI23K9_1E6B_pAJag",
+      authDomain: "smart-shop-sn.firebaseapp.com",
+      projectId: "smart-shop-sn",
+      storageBucket: "smart-shop-sn.firebasestorage.app",
+      messagingSenderId: "994218665659",
+      appId: "1:994218665659:web:eb59a7dce7ede1eeb7ab9e"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // ========== YAHAN API_URL DALO ==========
+    const API_URL = 'http://localhost:5000/api'; // Deploy ke baad badalna
+    
+    let state = {
+      locations: [],
+      selectedLocation: null,
+      selectedShop: null,
+      selectedProduct: null,
+      customerName: '',
+      customerPhone: '',
+      confirmationResult: null
+    };
+
+    async function loadLocations() {
+      try {
+        const res = await fetch(`${API_URL}/locations`);
+        const data = await res.json();
+        state.locations = data;
+        const select = document.getElementById('locationSelect');
+        select.innerHTML = '<option value="">-- इलाका चुनें --</option>';
+        data.forEach(loc => {
+          select.innerHTML += `<option value="${loc._id}">${loc.name}</option>`;
+        });
+        document.getElementById('locationLoading').style.display = 'none';
+      } catch(e) {
+        console.error(e);
+        document.getElementById('locationLoading').innerHTML = '❌ लोड नहीं हुआ';
+      }
+    }
+
+    async function loadShops(locationId) {
+      try {
+        const res = await fetch(`${API_URL}/shops/location/${locationId}`);
+        const shops = await res.json();
+        const shopList = document.getElementById('shopList');
+        shopList.innerHTML = '';
+        shops.forEach(shop => {
+          shopList.innerHTML += `
+            <div class="shop-card" onclick="selectShop('${shop._id}')">
+              <div>
+                <strong>🏪 ${shop.name}</strong><br>
+                📞 ${shop.phone}
+              </div>
+              <div>👉</div>
+            </div>
+          `;
+        });
+        showScreen('screenShops');
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    window.selectShop = async function(shopId) {
+      try {
+        const res = await fetch(`${API_URL}/shops/${shopId}`);
+        state.selectedShop = await res.json();
+        await loadProducts(shopId);
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    async function loadProducts(shopId) {
+      try {
+        const res = await fetch(`${API_URL}/products/shop/${shopId}`);
+        const products = await res.json();
+        const grid = document.getElementById('productGrid');
+        grid.innerHTML = '';
+        products.forEach(product => {
+          grid.innerHTML += `
+            <div class="product-card">
+              <div style="font-size: 32px;">🛒</div>
+              <strong>${product.name}</strong><br>
+              ₹${product.price} / ${product.unit}<br>
+              <button onclick="selectProduct('${product._id}', '${product.name}', ${product.price}, '${product.unit}')" style="margin-top: 8px; padding: 8px;">Book Now</button>
+            </div>
+          `;
+        });
+        showScreen('screenProducts');
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    window.selectProduct = function(id, name, price, unit) {
+      state.selectedProduct = { id, name, price, unit };
+      document.getElementById('bookingProductTitle').innerHTML = `📋 ${name} बुक करें`;
+      document.getElementById('productSummary').innerHTML = `<strong>${name}</strong> — ₹${price} / ${unit}`;
+      showScreen('screenBook');
+    }
+
+    window.sendOTP = async function() {
+      const name = document.getElementById('custName').value.trim();
+      const phone = document.getElementById('custPhone').value.trim();
+      
+      if (!name || !phone || phone.length !== 10) {
+        showToast('सही नाम और 10 अंक का नंबर दर्ज करें');
+        return;
+      }
+      
+      state.customerName = name;
+      state.customerPhone = phone;
+      
+      try {
+        // Firebase Phone Auth
+        const appVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+          size: 'invisible'
+        });
+        const phoneNumber = "+91" + phone;
+        const confirmation = await auth.signInWithPhoneNumber(phoneNumber, appVerifier);
+        state.confirmationResult = confirmation;
+        document.getElementById('otpSentTo').innerHTML = `OTP भेजा गया: +91 ${phone}`;
+        showScreen('screenOTP');
+        showToast('OTP भेजा गया!');
+      } catch(e) {
+        console.error(e);
+        showToast('OTP भेजने में समस्या');
+      }
+    }
+
+    window.verifyOTP = async function() {
+      const boxes = document.querySelectorAll('.otpBox');
+      let otp = '';
+      boxes.forEach(b => otp += b.value);
+      
+      if (otp.length !== 6) {
+        showToast('6 अंक का OTP दर्ज करें');
+        return;
+      }
+      
+      try {
+        const result = await state.confirmationResult.confirm(otp);
+        await createBooking();
+      } catch(e) {
+        showToast('गलत OTP');
+      }
+    }
+
+    async function createBooking() {
+      try {
+        const res = await fetch(`${API_URL}/bookings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shopId: state.selectedShop._id,
+            productId: state.selectedProduct.id,
+            quantity: 1,
+            customerName: state.customerName,
+            phone: state.customerPhone
+          })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          document.getElementById('successBookingId').innerHTML = data.booking.bookingId;
+          document.getElementById('successDetails').innerHTML = `
+            <strong>${state.selectedProduct.name}</strong> × 1<br>
+            ₹${state.selectedProduct.price}<br>
+            🏪 ${state.selectedShop.name}<br>
+            ⏳ Pickup within 45 minutes
+          `;
+          showScreen('screenSuccess');
+        }
+      } catch(e) {
+        showToast('बुकिंग विफल');
+      }
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('#screenArea, #screenShops, #screenProducts, #screenBook, #screenOTP, #screenSuccess').forEach(s => {
+        s.classList.add('hidden');
+      });
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerHTML = msg;
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    window.goHome = function() {
+      showScreen('screenArea');
+    }
+
+    window.goBack = function() {
+      // Simple back - can be improved
+      if (document.getElementById('screenShops').classList.contains('hidden') === false) {
+        showScreen('screenArea');
+      } else if (document.getElementById('screenProducts').classList.contains('hidden') === false) {
+        showScreen('screenShops');
+      } else if (document.getElementById('screenBook').classList.contains('hidden') === false) {
+        showScreen('screenProducts');
+      } else if (document.getElementById('screenOTP').classList.contains('hidden') === false) {
+        showScreen('screenBook');
+      } else {
+        showScreen('screenArea');
+      }
+    }
+
+    document.getElementById('locationSelect').addEventListener('change', (e) => {
+      if (e.target.value) loadShops(e.target.value);
+    });
+
+    // Add recaptcha container
+    const recaptchaDiv = document.createElement('div');
+    recaptchaDiv.id = 'recaptcha-container';
+    document.body.appendChild(recaptchaDiv);
+
+    loadLocations();
+  </script>
+</body>
+</html>
