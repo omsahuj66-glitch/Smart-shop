@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #0F172A; color: white; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: #1E293B; border-radius: 12px; padding: 20px; margin: 16px 0; }
+    input, button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; }
+    button { background: #F59E0B; color: #0F172A; font-weight: bold; cursor: pointer; }
+    .hidden { display: none; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #334155; }
+    .stat { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+    .stat-yellow { background: #F59E0B; color: #0F172A; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card" style="text-align: center;">
+      <h1>🛡️ Admin Panel</h1>
+    </div>
+
+    <!-- Login -->
+    <div id="loginScreen">
+      <div class="card">
+        <h3>🔐 Admin Login</h3>
+        <input type="text" id="adminUsername" placeholder="Username">
+        <input type="password" id="adminPassword" placeholder="Password">
+        <button onclick="adminLogin()">Login</button>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboardScreen" class="hidden">
+      <div class="card">
+        <h3>📊 Dashboard</h3>
+        <div id="stats"></div>
+        <hr>
+        <button onclick="loadLocations()">📍 Manage Locations</button>
+        <button onclick="loadShops()">🏪 Manage Shops</button>
+        <button onclick="loadSellers()">👨‍💼 Manage Sellers</button>
+        <button onclick="loadBookings()">📦 View Bookings</button>
+        <button onclick="loadTrust()">⭐ Trust Scores</button>
+        <button onclick="logout()" style="background: #ef4444;">Logout</button>
+      </div>
+    </div>
+
+    <!-- Data Display -->
+    <div id="dataScreen" class="hidden">
+      <div class="card">
+        <h3 id="dataTitle">Data</h3>
+        <div id="dataContent"></div>
+        <button onclick="backToDashboard()">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api'; // ADD_YOUR_BACKEND_URL_HERE
+    let token = localStorage.getItem('adminToken');
+
+    if (token) loadDashboard();
+
+    async function adminLogin() {
+      const username = document.getElementById('adminUsername').value;
+      const password = document.getElementById('adminPassword').value;
+      
+      const res = await fetch(`${API_URL}/auth/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('adminToken', data.token);
+        token = data.token;
+        loadDashboard();
+      } else {
+        alert('Invalid credentials');
+      }
+    }
+
+    async function loadDashboard() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboardScreen').classList.remove('hidden');
+      
+      const res = await fetch(`${API_URL}/admin/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const stats = await res.json();
+      document.getElementById('stats').innerHTML = `
+        <div class="stat stat-yellow">🏪 Shops: ${stats.totalShops}</div>
+        <div class="stat stat-yellow">📦 Bookings: ${stats.totalBookings}</div>
+        <div class="stat stat-yellow">📍 Locations: ${stats.activeLocations}</div>
+        <div class="stat stat-yellow">👨‍💼 Sellers: ${stats.sellers}</div>
+      `;
+    }
+
+    async function loadLocations() {
+      const res = await fetch(`${API_URL}/locations/all`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      showData('📍 Locations', data, ['name', 'type', 'isActive']);
+    }
+
+    async function loadShops() {
+      const res = await fetch(`${API_URL}/shops`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      showData('🏪 Shops', data, ['name', 'phone', 'upiId', 'isActive']);
+    }
+
+    async function loadSellers() {
+      const res = await fetch(`${API_URL}/admin/sellers`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      showData('👨‍💼 Sellers', data, ['name', 'email', 'phone', 'isBlocked']);
+    }
+
+    async function loadBookings() {
+      const res = await fetch(`${API_URL}/bookings/admin/all`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      showData('📦 Bookings', data, ['bookingId', 'customerName', 'phone', 'status']);
+    }
+
+    async function loadTrust() {
+      const res = await fetch(`${API_URL}/trust`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      showData('⭐ Trust Scores', data, ['customerName', 'phone', 'score', 'totalBookings']);
+    }
+
+    function showData(title, data, fields) {
+      document.getElementById('dashboardScreen').classList.add('hidden');
+      document.getElementById('dataScreen').classList.remove('hidden');
+      document.getElementById('dataTitle').innerHTML = title;
+      
+      let html = '<table><tr>';
+      fields.forEach(f => html += `<th>${f}</th>`);
+      html += '</tr>';
+      
+      data.forEach(item => {
+        html += '<tr>';
+        fields.forEach(f => {
+          let val = item[f];
+          if (typeof val === 'boolean') val = val ? '✅' : '❌';
+          html += `<td>${val || '-'}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</table>';
+      document.getElementById('dataContent').innerHTML = html;
+    }
+
+    function backToDashboard() {
+      document.getElementById('dataScreen').classList.add('hidden');
+      document.getElementById('dashboardScreen').classList.remove('hidden');
+    }
+
+    function logout() {
+      localStorage.removeItem('adminToken');
+      location.reload();
+    }
+  </script>
+</body>
+</html>
